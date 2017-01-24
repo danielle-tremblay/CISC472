@@ -253,60 +253,27 @@ class DanielleTest(ScriptedLoadableModuleTest):
     self.test_Danielle1()
 
   def test_Danielle1(self):
-    """ Ideally you should have several levels of tests.  At the lowest level
-    tests should exercise the functionality of the logic with different inputs
-    (both valid and invalid).  At higher levels your tests should emulate the
-    way the user would interact with your code and confirm that it still works
-    the way you intended.
-    One of the most important features of the tests is that it should alert other
-    developers when their changes will have an impact on the behavior of your
-    module.  For example, if a developer removes a feature that you depend on,
-    your test should break so they know that the feature is needed.
-    """
+    alphaFids = slicer.vtkMRMLMarkupsFiducialNode()
+    alphaFids.SetName('RasPoints')
+    slicer.mrmlScene.AddNode(alphaFids)
 
-    self.delayDisplay("Starting the test")
-    #
-    # first, get some data
-    #
-    import urllib
-    downloads = (
-        ('http://slicer.kitware.com/midas3/download?items=5767', 'FA.nrrd', slicer.util.loadVolume),
-        )
+    betaFids = slicer.vtkMRMLMarkupsFiducialNode()
+    betaFids.SetName('ReferencePoints')
+    slicer.mrmlScene.AddNode(betaFids)
+    betaFids.GetDisplayNode().SetSelectedColor(1,1,0)
+    
+    N = 10
+    Scale = 100
+    Sigma = 5.0
+    fromNormCoordinates = numpy.random.rand(N, 3) # An array of random numbers
+    noise = numpy.random.normal(0.0, Sigma, N*3)
 
-    for url,name,loader in downloads:
-      filePath = slicer.app.temporaryPath + '/' + name
-      if not os.path.exists(filePath) or os.stat(filePath).st_size == 0:
-        logging.info('Requesting download %s from %s...\n' % (name, url))
-        urllib.urlretrieve(url, filePath)
-      if loader:
-        logging.info('Loading %s...' % (name,))
-        loader(filePath)
-        
-    self.delayDisplay('Finished with download and loading')
-
-    volumeNode = slicer.util.getNode(pattern="FA")
-    logic = DanielleLogic()
-    self.assertIsNotNone( logic.hasImageData(volumeNode) )
-
-    createModelsLogic = slicer.modules.createmodels.logic()
-    
-    preModelNode = createModelsLogic.CreateCoordinate(20,2)
-    preModelNode.SetName('PreModel')
-    preModelNode.GetDisplayNode().SetColor(1,1,0)
-    
-    originModelNode = createModelsLogic.CreateCoordinate(20,2)
-    originModelNode.SetName('OriginModel')
-    originModelNode.GetDisplayNode().SetColor(0,1,0)
-    
-    preModelToRas = slicer.vtkMRMLLinearTransformNode()
-    preModelToRas.SetName('PreModelToRas')
-    slicer.mrmlScene.AddNode(preModelToRas)  
-    preModelToRasTransform = vtk.vtkTransform()
-    preModelToRasTransform.PreMultiply() 
-    preModelToRasTransform.Translate(0, 0, 50)
-    preModelToRasTransform.Update()
-    preModelToRas.SetAndObserveTransformToParent(preModelToRasTransform)
-    preModelNode.SetAndObserveTransformNodeID(preModelToRas.GetID())
-    
-    
-    self.delayDisplay('Test passed!')
+    for i in range(N):
+      x = (fromNormCoordinates[i, 0] - 0.5) * Scale
+      y = (fromNormCoordinates[i, 1] - 0.5) * Scale
+      z = (fromNormCoordinates[i, 2] - 0.5) * Scale
+      alphaFids.AddFiducial(x, y, z)
+      xx = x+noise[i*3]
+      yy = y+noise[i*3+1]
+      zz = z+noise[i*3+2]
+      betaFids.AddFiducial(xx, yy, zz)
