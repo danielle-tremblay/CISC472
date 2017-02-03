@@ -138,14 +138,26 @@ class DanielleWidget(ScriptedLoadableModuleWidget):
 #
 
 class DanielleLogic(ScriptedLoadableModuleLogic):
-  """This class should implement all the actual
-  computation done by your module.  The interface
-  should be such that other python code can import
-  this class and make use of the functionality without
-  requiring an instance of the Widget.
-  Uses ScriptedLoadableModuleLogic base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
+
+  def averageDistancePoints(self, pointsA, pointsB, aToBMatrix):
+    average = 0.0
+    numbersSoFar = 0
+    N = pointsA.GetNumberOfPoints()
+
+    for i in range(N):
+        numbersSoFar = numbersSoFar + 1
+        a = pointsA.GetPoint(i)
+        pointA_Reference = numpy.array(a)
+        pointA_Reference = numpy.append(pointA_Reference, 1)
+        pointA_Ras = aToBMatrix.MultiplyFloatPoint(pointA_Reference)
+        b = pointsB.GetPoint(i)
+        pointB_Ras = numpy.array(b)
+        pointB_Ras = numpy.append(pointB_Ras, 1)
+        distance = numpy.linalg.norm(pointA_Ras - pointB_Ras)
+        average = average + (distance - average) / numbersSoFar
+
+    return average
+
 
   def hasImageData(self,volumeNode):
     """This is an example logic method that
@@ -312,20 +324,8 @@ class DanielleTest(ScriptedLoadableModuleTest):
 
     referenceToRas.SetMatrixTransformToParent(referenceToRasMatrix)
 
-    average = 0.0
-    numbersSoFar = 0
-
-    for i in range(N):
-        numbersSoFar = numbersSoFar + 1
-        a = referencePoints.GetPoint(i)
-        pointA_Reference = numpy.array(a)
-        pointA_Reference = numpy.append(pointA_Reference, 1)
-        pointA_Ras = referenceToRasMatrix.MultiplyFloatPoint(pointA_Reference)
-        b = rasPoints.GetPoint(i)
-        pointB_Ras = numpy.array(b)
-        pointB_Ras = numpy.append(pointB_Ras, 1)
-        distance = numpy.linalg.norm(pointA_Ras - pointB_Ras)
-        average = average + (distance - average) / numbersSoFar
+    logic = DanielleLogic()
+    average = logic.averageDistancePoints(referencePoints, rasPoints, referenceToRasMatrix)
 
     print "Average distance after registration: " + str(average)
 
