@@ -138,14 +138,26 @@ class DanielleWidget(ScriptedLoadableModuleWidget):
 #
 
 class DanielleLogic(ScriptedLoadableModuleLogic):
-  """This class should implement all the actual
-  computation done by your module.  The interface
-  should be such that other python code can import
-  this class and make use of the functionality without
-  requiring an instance of the Widget.
-  Uses ScriptedLoadableModuleLogic base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
+
+  def averageDistancePoints(self, pointsA, pointsB, aToBMatrix):
+    average = 0.0
+    numbersSoFar = 0
+    N = pointsA.GetNumberOfPoints()
+
+    for i in range(N):
+        numbersSoFar = numbersSoFar + 1
+        a = pointsA.GetPoint(i)
+        pointA_Reference = numpy.array(a)
+        pointA_Reference = numpy.append(pointA_Reference, 1)
+        pointA_Ras = aToBMatrix.MultiplyFloatPoint(pointA_Reference)
+        b = pointsB.GetPoint(i)
+        pointB_Ras = numpy.array(b)
+        pointB_Ras = numpy.append(pointB_Ras, 1)
+        distance = numpy.linalg.norm(pointA_Ras - pointB_Ras)
+        average = average + (distance - average) / numbersSoFar
+
+    return average
+
 
   def hasImageData(self,volumeNode):
     """This is an example logic method that
@@ -258,8 +270,8 @@ class DanielleTest(ScriptedLoadableModuleTest):
     referenceToRas.SetName('ReferenceToRas')
     slicer.mrmlScene.AddNode(referenceToRas)
 
-    alphaPoints = vtk.vtkPoints()
-    betaPoints = vtk.vtkPoints()
+    referencePoints = vtk.vtkPoints()
+    rasPoints = vtk.vtkPoints()
 
     alphaFids = slicer.vtkMRMLMarkupsFiducialNode()
     alphaFids.SetName('ReferencePoints')
@@ -280,12 +292,12 @@ class DanielleTest(ScriptedLoadableModuleTest):
       y = (fromNormCoordinates[i, 1] - 0.5) * Scale
       z = (fromNormCoordinates[i, 2] - 0.5) * Scale
       alphaFids.AddFiducial(x, y, z)
-      alphaPoints.InsertNextPoint(x, y, z)
+      referencePoints.InsertNextPoint(x, y, z)
       xx = x+noise[i*3]
       yy = y+noise[i*3+1]
       zz = z+noise[i*3+2]
       betaFids.AddFiducial(xx, yy, zz)
-      betaPoints.InsertNextPoint(xx, yy, zz)
+      rasPoints.InsertNextPoint(xx, yy, zz)
 
     createModelsLogic = slicer.modules.createmodels.logic()
     rasCoordinateModel = createModelsLogic.CreateCoordinate(25, 2)
@@ -298,38 +310,26 @@ class DanielleTest(ScriptedLoadableModuleTest):
     referenceCoordinateModel.SetAndObserveTransformNodeID(referenceToRas.GetID())
 
     landmarkTransform = vtk.vtkLandmarkTransform()
-    landmarkTransform.SetSourceLandmarks(alphaPoints)
-    landmarkTransform.SetTargetLandmarks(betaPoints)
+    landmarkTransform.SetSourceLandmarks(referencePoints)
+    landmarkTransform.SetTargetLandmarks(rasPoints)
     landmarkTransform.SetModeToRigidBody()
     landmarkTransform.Update()
 
-    rasToReferenceMatrix = vtk.vtkMatrix4x4()
-    landmarkTransform.GetMatrix(rasToReferenceMatrix)
+    referenceToRasMatrix = vtk.vtkMatrix4x4()
+    landmarkTransform.GetMatrix(referenceToRasMatrix)
 
-    det = rasToReferenceMatrix.Determinant()
+    det = referenceToRasMatrix.Determinant()
     if det < 1e-8:
         print 'Unstable registration. Check input for collinear points.'
 
-    referenceToRas.SetMatrixTransformToParent(rasToReferenceMatrix)
+    referenceToRas.SetMatrixTransformToParent(referenceToRasMatrix)
 
-    average = 0.0
-    numbersSoFar = 0
-
-    for i in range(N):
-        numbersSoFar = numbersSoFar + 1
-        a = alphaPoints.GetPoint(i)
-        pointA_Alpha = numpy.array(a)
-        pointA_Alpha = numpy.append(pointA_Alpha, 1)
-        pointA_Beta = rasToReferenceMatrix.MultiplyFloatPoint(pointA_Alpha)
-        b = betaPoints.GetPoint(i)
-        pointB_Beta = numpy.array(b)
-        pointB_Beta = numpy.append(pointB_Beta, 1)
-        distance = numpy.linalg.norm(pointA_Beta - pointB_Beta)
-        average = average + (distance - average) / numbersSoFar
+    logic = DanielleLogic()
+    average = logic.averageDistancePoints(referencePoints, rasPoints, referenceToRasMatrix)
 
     print "Average distance after registration: " + str(average)
 
     targetPoint_Reference = numpy.array([0,0,0,1])
-    targetPoint_Ras = rasToReferenceMatrix.MultiplyFloatPoint(targetPoint_Reference)
+    targetPoint_Ras = referenceToRasMatrix.MultiplyFloatPoint(targetPoint_Reference)
     d = numpy.linalg.norm(targetPoint_Reference - targetPoint_Ras)
     print "TRE: " + str(d)
