@@ -282,7 +282,7 @@ class DanielleTest(ScriptedLoadableModuleTest):
     slicer.mrmlScene.AddNode(betaFids)
     betaFids.GetDisplayNode().SetSelectedColor(1,1,0)
 
-    N = 10
+    N = 15
     Sigma = 2
     Scale = 50
     fromNormCoordinates = numpy.random.rand(N, 3)
@@ -299,28 +299,33 @@ class DanielleTest(ScriptedLoadableModuleTest):
       betaFids.AddFiducial(xx, yy, zz)
       rasPoints.InsertNextPoint(xx, yy, zz)
 
-    createModelsLogic = slicer.modules.createmodels.logic()
-    rasCoordinateModel = createModelsLogic.CreateCoordinate(25, 2)
-    rasCoordinateModel.SetName('RasCoordinateModel')
-    referenceCoordinateModel = createModelsLogic.CreateCoordinate(20, 2)
-    referenceCoordinateModel.SetName('ReferenceCoordinateModel')
-    rasCoordinateModel.GetDisplayNode().SetColor(1, 0, 0)
-    referenceCoordinateModel.GetDisplayNode().SetColor(0, 0, 1)
+      createModelsLogic = slicer.modules.createmodels.logic()
+      rasCoordinateModel = createModelsLogic.CreateCoordinate(25, 2)
+      rasCoordinateModel.SetName('RasCoordinateModel')
+      referenceCoordinateModel = createModelsLogic.CreateCoordinate(20, 2)
+      referenceCoordinateModel.SetName('ReferenceCoordinateModel')
+      rasCoordinateModel.GetDisplayNode().SetColor(1, 0, 0)
+      referenceCoordinateModel.GetDisplayNode().SetColor(0, 0, 1)
 
-    referenceCoordinateModel.SetAndObserveTransformNodeID(referenceToRas.GetID())
+      referenceCoordinateModel.SetAndObserveTransformNodeID(referenceToRas.GetID())
 
-    landmarkTransform = vtk.vtkLandmarkTransform()
-    landmarkTransform.SetSourceLandmarks(referencePoints)
-    landmarkTransform.SetTargetLandmarks(rasPoints)
-    landmarkTransform.SetModeToRigidBody()
-    landmarkTransform.Update()
+      landmarkTransform = vtk.vtkLandmarkTransform()
+      landmarkTransform.SetSourceLandmarks(referencePoints)
+      landmarkTransform.SetTargetLandmarks(rasPoints)
+      landmarkTransform.SetModeToRigidBody()
+      landmarkTransform.Update()
 
-    referenceToRasMatrix = vtk.vtkMatrix4x4()
-    landmarkTransform.GetMatrix(referenceToRasMatrix)
+      referenceToRasMatrix = vtk.vtkMatrix4x4()
+      landmarkTransform.GetMatrix(referenceToRasMatrix)
 
-    det = referenceToRasMatrix.Determinant()
-    if det < 1e-8:
-        print 'Unstable registration. Check input for collinear points.'
+      det = referenceToRasMatrix.Determinant()
+      if det < 1e-8:
+          print 'Unstable registration. Check input for collinear points.'
+
+      targetPoint_Reference = numpy.array([0,0,0,1])
+      targetPoint_Ras = referenceToRasMatrix.MultiplyFloatPoint(targetPoint_Reference)
+      d = numpy.linalg.norm(targetPoint_Reference - targetPoint_Ras)
+      print "TRE: " + str(d)
 
     referenceToRas.SetMatrixTransformToParent(referenceToRasMatrix)
 
@@ -333,3 +338,43 @@ class DanielleTest(ScriptedLoadableModuleTest):
     targetPoint_Ras = referenceToRasMatrix.MultiplyFloatPoint(targetPoint_Reference)
     d = numpy.linalg.norm(targetPoint_Reference - targetPoint_Ras)
     print "TRE: " + str(d)
+
+    #Code for Homework #12 - Indented previous code to include TRE calculation
+    # in fiducual registration for loop 
+
+    #Code for Homework #13
+
+    #TRE as a function of number of points
+    dn = slicer.mrmlScene.AddNode(slicer.vtkMRMLDoubleArrayNode())
+    a = dn.GetArray()
+    a.SetNumberOfTuples(N)
+    x = range(0, N)
+    for i in range(len(x)):
+      targetPoint_Reference = numpy.array([0,0,0,1])
+      targetPoint_Ras = referenceToRasMatrix.MultiplyFloatPoint(targetPoint_Reference)
+      d = numpy.linalg.norm(targetPoint_Reference - targetPoint_Ras)
+
+    #Creates chart view
+    lns = slicer.mrmlScene.GetNodesByClass('vtkMRMLLayoutNode')
+    lns.InitTraversal()
+    ln = lns.GetNextItemAsObject()
+    ln.SetViewArrangement(24)
+
+    #Get chart view node
+    cvns = slicer.mrmlScene.GetNodesByClass('vtkMRMLChartViewNode')
+    cvns.InitTraversal()
+    cvn = cvns.GetNextItemAsObject()
+    
+    #Create chart node
+    cn = slicer.mrmlScene.AddNode(slicer.vtkMRMLChartNode())
+
+    cn.AddArray('plot',dn.GetID())
+
+    #Setting properties on the chart
+    cn.SetProperty('default', 'title', 'TRE as a Function of Number of Points')
+    cn.SetProperty('default', 'xAxisLabel', 'Points')
+    cn.SetProperty('default', 'yAxisLabel', 'TRE')
+
+
+    #Which chart to display
+    cvn.SetChartNodeID(cn.GetID())
