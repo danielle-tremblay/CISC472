@@ -287,6 +287,10 @@ class DanielleTest(ScriptedLoadableModuleTest):
     Scale = 50
     fromNormCoordinates = numpy.random.rand(N, 3)
     noise = numpy.random.normal(0.0, Sigma, N*3)
+
+    dn = slicer.mrmlScene.AddNode(slicer.vtkMRMLDoubleArrayNode())
+    a = dn.GetArray()
+    a.SetNumberOfTuples(N)
     for i in range(N):
       x = (fromNormCoordinates[i, 0] - 0.5) * Scale
       y = (fromNormCoordinates[i, 1] - 0.5) * Scale
@@ -327,32 +331,21 @@ class DanielleTest(ScriptedLoadableModuleTest):
       d = numpy.linalg.norm(targetPoint_Reference - targetPoint_Ras)
       print "TRE: " + str(d)
 
-    referenceToRas.SetMatrixTransformToParent(referenceToRasMatrix)
+      referenceToRas.SetMatrixTransformToParent(referenceToRasMatrix)
 
-    logic = DanielleLogic()
-    average = logic.averageDistancePoints(referencePoints, rasPoints, referenceToRasMatrix)
+      logic = DanielleLogic()
+      average = logic.averageDistancePoints(referencePoints, rasPoints, referenceToRasMatrix)
 
-    print "Average distance after registration: " + str(average)
+      print "Average distance after registration: " + str(average)
 
-    targetPoint_Reference = numpy.array([0,0,0,1])
-    targetPoint_Ras = referenceToRasMatrix.MultiplyFloatPoint(targetPoint_Reference)
-    d = numpy.linalg.norm(targetPoint_Reference - targetPoint_Ras)
-    print "TRE: " + str(d)
+      a.SetComponent(i,0, i)
+      a.SetComponent(i, 1, d)
+      a.SetComponent(i, 2, 0)
 
     #Code for Homework #12 - Indented previous code to include TRE calculation
     # in fiducual registration for loop 
 
     #Code for Homework #13
-
-    #TRE as a function of number of points
-    dn = slicer.mrmlScene.AddNode(slicer.vtkMRMLDoubleArrayNode())
-    a = dn.GetArray()
-    a.SetNumberOfTuples(N)
-    x = range(0, N)
-    for i in range(len(x)):
-      targetPoint_Reference = numpy.array([0,0,0,1])
-      targetPoint_Ras = referenceToRasMatrix.MultiplyFloatPoint(targetPoint_Reference)
-      d = numpy.linalg.norm(targetPoint_Reference - targetPoint_Ras)
 
     #Creates chart view
     lns = slicer.mrmlScene.GetNodesByClass('vtkMRMLLayoutNode')
@@ -372,7 +365,7 @@ class DanielleTest(ScriptedLoadableModuleTest):
 
     #Setting properties on the chart
     cn.SetProperty('default', 'title', 'TRE as a Function of Number of Points')
-    cn.SetProperty('default', 'xAxisLabel', 'Points')
+    cn.SetProperty('default', 'xAxisLabel', 'numberOfPoints')
     cn.SetProperty('default', 'yAxisLabel', 'TRE')
 
 
