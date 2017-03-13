@@ -5,17 +5,17 @@ from slicer.ScriptedLoadableModule import *
 import logging
 
 #
-# Spine Segmentation
+# Spine_Segmentation
 #
 
-class Spine Segmentation(ScriptedLoadableModule):
+class Spine_Segmentation(ScriptedLoadableModule):
   """Uses ScriptedLoadableModule base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    self.parent.title = "Spine Segmentation" # TODO make this more human readable by adding spaces
+    self.parent.title = "Spine_Segmentation" # TODO make this more human readable by adding spaces
     self.parent.categories = ["Examples"]
     self.parent.dependencies = []
     self.parent.contributors = ["John Doe (AnyWare Corp.)"] # replace with "Firstname Lastname (Organization)"
@@ -29,10 +29,10 @@ class Spine Segmentation(ScriptedLoadableModule):
 """ # replace with organization, grant and thanks.
 
 #
-# Spine SegmentationWidget
+# Spine_SegmentationWidget
 #
 
-class Spine SegmentationWidget(ScriptedLoadableModuleWidget):
+class Spine_SegmentationWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
@@ -51,6 +51,9 @@ class Spine SegmentationWidget(ScriptedLoadableModuleWidget):
 
     # Layout within the dummy collapsible button
     parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
+
+    self.imageSelector = slicer.qMRMLNodeComboBox()
+    self.imageSelector.nodeTypes = [
 
     #
     # input volume selector
@@ -127,16 +130,16 @@ class Spine SegmentationWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
 
   def onApplyButton(self):
-    logic = Spine SegmentationLogic()
+    logic = Spine_SegmentationLogic()
     enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
     imageThreshold = self.imageThresholdSliderWidget.value
     logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold, enableScreenshotsFlag)
 
 #
-# Spine SegmentationLogic
+# Spine_SegmentationLogic
 #
 
-class Spine SegmentationLogic(ScriptedLoadableModuleLogic):
+class Spine_SegmentationLogic(ScriptedLoadableModuleLogic):
   """This class should implement all the actual
   computation done by your module.  The interface
   should be such that other python code can import
@@ -227,14 +230,14 @@ class Spine SegmentationLogic(ScriptedLoadableModuleLogic):
 
     # Capture screenshot
     if enableScreenshots:
-      self.takeScreenshot('Spine SegmentationTest-Start','MyScreenshot',-1)
+      self.takeScreenshot('Spine_SegmentationTest-Start','MyScreenshot',-1)
 
     logging.info('Processing completed')
 
     return True
 
 
-class Spine SegmentationTest(ScriptedLoadableModuleTest):
+class Spine_SegmentationTest(ScriptedLoadableModuleTest):
   """
   This is the test case for your scripted module.
   Uses ScriptedLoadableModuleTest base class, available at:
@@ -250,40 +253,12 @@ class Spine SegmentationTest(ScriptedLoadableModuleTest):
     """Run as few or as many tests as needed here.
     """
     self.setUp()
-    self.test_Spine Segmentation1()
+    self.test_Spine_Segmentation1()
 
-  def test_Spine Segmentation1(self):
-    """ Ideally you should have several levels of tests.  At the lowest level
-    tests should exercise the functionality of the logic with different inputs
-    (both valid and invalid).  At higher levels your tests should emulate the
-    way the user would interact with your code and confirm that it still works
-    the way you intended.
-    One of the most important features of the tests is that it should alert other
-    developers when their changes will have an impact on the behavior of your
-    module.  For example, if a developer removes a feature that you depend on,
-    your test should break so they know that the feature is needed.
-    """
+  def test_Spine_Segmentation1(self):
+    loadDataButton = qt.QPushButton("Load Data")
+    hlayout.addWidget(loadDataButton)
+    loadDataButton.connect('clicked()', slicer.util.openSaveDataDialog)
+    
 
-    self.delayDisplay("Starting the test")
-    #
-    # first, get some data
-    #
-    import urllib
-    downloads = (
-        ('http://slicer.kitware.com/midas3/download?items=5767', 'FA.nrrd', slicer.util.loadVolume),
-        )
-
-    for url,name,loader in downloads:
-      filePath = slicer.app.temporaryPath + '/' + name
-      if not os.path.exists(filePath) or os.stat(filePath).st_size == 0:
-        logging.info('Requesting download %s from %s...\n' % (name, url))
-        urllib.urlretrieve(url, filePath)
-      if loader:
-        logging.info('Loading %s...' % (name,))
-        loader(filePath)
-    self.delayDisplay('Finished with download and loading')
-
-    volumeNode = slicer.util.getNode(pattern="FA")
-    logic = Spine SegmentationLogic()
-    self.assertIsNotNone( logic.hasImageData(volumeNode) )
-    self.delayDisplay('Test passed!')
+ 
