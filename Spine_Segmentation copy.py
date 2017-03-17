@@ -134,6 +134,10 @@ class Spine_SegmentationWidget(ScriptedLoadableModuleWidget):
     enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
     imageThreshold = self.imageThresholdSliderWidget.value
     logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold, enableScreenshotsFlag)
+    n = slicer.util.getNode('007.CTDC.nrrd')
+    a = slicer.util.array('007.CTDC.nrrd')
+    a[:] = a.max()/2. - a
+    n.GetImageData().Modified()
 
 #
 # Spine_SegmentationLogic
@@ -256,9 +260,7 @@ class Spine_SegmentationTest(ScriptedLoadableModuleTest):
     self.test_Spine_Segmentation1()
 
   def test_Spine_Segmentation1(self):
-    loadDataButton = qt.QPushButton("Load Data")
-    hlayout.addWidget(loadDataButton)
-    loadDataButton.connect('clicked()', slicer.util.openSaveDataDialog)
+   print('Done')
     
 
  
