@@ -134,10 +134,16 @@ class Spine_SegmentationWidget(ScriptedLoadableModuleWidget):
     enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
     imageThreshold = self.imageThresholdSliderWidget.value
     logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold, enableScreenshotsFlag)
-    n = slicer.util.getNode('007.CTDC.nrrd')
-    a = slicer.util.array('007.CTDC.nrrd')
-    a[:] = a.max()/2. - a
-    n.GetImageData().Modified()
+    import SimpleITK as sitk
+    import sitkUtils
+    inputImage = sitkUtils.PullFromSlicer('007.CTDC.nrrd')
+    filter = sitk.ShotNoiseImageFilter()
+    filter.SetDebug(False)
+    filter.SetNumberOfThreads(4)
+    filter.SetScale(1.0)
+    filter.SetSeed(11)
+    outputImage = filter.Execute(inputImage)
+    sitkUtils.PushToSlicer(outputImage, 'outputImage')
 
 #
 # Spine_SegmentationLogic
