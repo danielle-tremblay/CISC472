@@ -130,20 +130,40 @@ class Spine_SegmentationWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
 
   def onApplyButton(self):
-    logic = Spine_SegmentationLogic()
-    enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
-    imageThreshold = self.imageThresholdSliderWidget.value
-    logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold, enableScreenshotsFlag)
     import SimpleITK as sitk
     import sitkUtils
+
+    #ShotNoiseImageFilter
     inputImage = sitkUtils.PullFromSlicer('007.CTDC.nrrd')
-    filter = sitk.ShotNoiseImageFilter()
-    filter.SetDebug(False)
-    filter.SetNumberOfThreads(4)
-    filter.SetScale(1.0)
-    filter.SetSeed(11)
-    outputImage = filter.Execute(inputImage)
-    sitkUtils.PushToSlicer(outputImage, 'outputImage')
+    filter1 = sitk.ShotNoiseImageFilter()
+    filter1.SetDebug(False)
+    filter1.SetNumberOfThreads(4)
+    filter1.SetScale(1.0)
+    filter1.SetSeed(11)
+    outputImage1 = filter1.Execute(inputImage)
+
+    #OtsuMultipleThresholdsImageFilter
+    filter2 = sitk.OtsuMultipleThresholdsImageFilter()
+    filter2.SetDebug(False)
+    filter2.SetLabelOffset(0)
+    filter2.SetNumberOfHistogramBins(128)
+    filter2.SetNumberOfThreads(4)
+    filter2.SetNumberOfThresholds(2)
+    filter2.SetValleyEmphasis(False)
+    outputImage2 = filter2.Execute(outputImage1)
+ 
+    #VotingBinaryHoleFillingImageFilter
+    filter3 = sitk.VotingBinaryHoleFillingImageFilter()
+    filter3.SetBackgroundValue(0.0)
+    filter3.SetDebug(False)
+    filter3.SetForegroundValue(1.0)
+    filter3.SetMajorityThreshold(50)
+    filter3.SetNumberOfThreads(4)
+    filter3.SetRadius((2, 2, 2))
+    outputImage3 = filter3.Execute(outputImage2)
+    
+    #Display to the Screen
+    sitkUtils.PushToSlicer(outputImage3, 'Volume')
 
 #
 # Spine_SegmentationLogic
